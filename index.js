@@ -3,6 +3,9 @@ const helmet = require('helmet');
 const bcrypt = require('bcryptjs'); 
 const cors = require('cors');
 const session = require('express-session');
+const KnexSessionStore = require('connect-session-knex')(session);
+
+
 
 const Users = require('./users/userModel.js');
 const db = require('./database/dbConfig.js');
@@ -13,12 +16,19 @@ const sessionConfig = {
   name: 'chocolateChip',
   secret: 'keep it secret, keep it safe',
   cookie: {
-    maxAge: 1000 * 60 * 15, //in miliseconds
+    maxAge: 1000 * 60 * 60, //in miliseconds
     secure: false,
   },
 httpOnly: true, 
 resave: false,
 saveUninitialize: false,
+store: new KnexSessionStore({
+  knex: db,
+  tablename: 'sessions',
+  sidfieldname: 'sid',
+  createTable: true,
+  clearInterval: 1000 * 60 * 60
+}),
 }
 
 server.use(helmet());
@@ -81,10 +91,10 @@ server.get('/api/logout', (req, res, next) => {
         res.send('ba bye')
       }
     })
-  }
-  else {
-    res.end()
-  }
+      }
+      else {
+        res.end()
+      }
 })
 
 function only(username) {
