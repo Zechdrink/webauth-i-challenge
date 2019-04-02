@@ -72,6 +72,21 @@ server.get('/api/users',restricted, only('bobo'), (req, res) => {
     .catch(err => res.send(err));
 });
 
+server.get('/api/logout', (req, res, next) => {
+  if(req.session){
+    req.session.destroy(err => {
+      if(err){
+        res.send('Im afraid you will not be leaving')
+      } else {
+        res.send('ba bye')
+      }
+    })
+  }
+  else {
+    res.end()
+  }
+})
+
 function only(username) {
   return function (req, res, next) {
     if(req.headers.username === username){
