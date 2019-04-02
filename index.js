@@ -2,15 +2,29 @@ const express = require('express');
 const helmet = require('helmet');
 const bcrypt = require('bcryptjs'); 
 const cors = require('cors');
+const session = require('express-session');
 
 const Users = require('./users/userModel.js');
 const db = require('./database/dbConfig.js');
 
 const server = express();
 
+const sessionConfig = {
+  name: 'chocolateChip',
+  secret: 'keep it secret, keep it safe',
+  cookie: {
+    maxAge: 1000 * 60 * 15, //in miliseconds
+    secure: false,
+  },
+httpOnly: true, 
+resave: false,
+saveUninitialize: false,
+}
+
 server.use(helmet());
 server.use(express.json());
 server.use(cors());
+server.use(session(sessionConfig));
 
 server.get('/', (req, res) => {
   res.send("I is awake...");
@@ -39,6 +53,7 @@ server.post('/api/login', (req, res) => {
     .first()
     .then(user => {
       if (user && bcrypt.compareSync(password, user.password)) {
+        req.session.username = user.username;
         res.status(200).json({ message: `Welcome ${user.username}!` });
       } else {
         res.status(401).json({ message: 'Invalid Credentials' });
@@ -49,7 +64,7 @@ server.post('/api/login', (req, res) => {
     });
 });
 
-server.get('/api/users',restricted, only('hobo'), (req, res) => {
+server.get('/api/users',restricted, only('bobo'), (req, res) => {
   Users.find()
     .then(users => {
       res.json(users);
@@ -68,25 +83,35 @@ function only(username) {
 }
 
 function restricted(req, res, next) {
-  const {username, password} = req.headers;
 
-  if(username && password ){
-    Users.findBy({ username })
-      .first()
-      .then( user => {
-        if(user && bcrypt.compareSync(password, user.password)) {
-          next();
-        } else {
-          res.status(401).json({ message: 'you no passy' });
-        }
-      })
-      .catch(error => {
-        res.status(500).json(error);
-      });
+  if(req.session && req.session.username){
+    next();
   } else {
-    res.status(401).json({ message: 'you need to provide credentials'})
+    res.status(401).json({ message: 'you shall not..... PASSSSSSSSS!'})
   }
 }
+
+// BEFORE COOKIES EXISTED EXAMPLE of old restricted
+// function restricted(req, res, next) {
+//   const {username, password} = req.headers;
+
+//   if(username && password ){
+//     Users.findBy({ username })
+//       .first()
+//       .then( user => {
+//         if(user && bcrypt.compareSync(password, user.password)) {
+//           next();
+//         } else {
+//           res.status(401).json({ message: 'you no passy' });
+//         }
+//       })
+//       .catch(error => {
+//         res.status(500).json(error);
+//       });
+//   } else {
+//     res.status(401).json({ message: 'you need to provide credentials'})
+//   }
+// }
 
 
 server.listen(5000, () => console.log(`\n** Running on http://localhost:5000 **\n`));
